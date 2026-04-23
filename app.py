@@ -50,6 +50,8 @@ def main():
     # delete object
     deleteobject = subparsers.add_parser("deleteobject")
     deleteobject.add_argument("bucket_name")
+    deleteobject.add_argument("key")
+    
 
     # empty_and_delete_bucket
     deletebucket = subparsers.add_parser("deletebucket")
@@ -58,10 +60,12 @@ def main():
     # LIST
     list_cmd = subparsers.add_parser("list")
     list_cmd.add_argument("bucket_name")
+    list_cmd.add_argument("--prefix", default=None)
 
     # listversions
     listversions = subparsers.add_parser("listversions")
     listversions.add_argument("bucket_name")
+    listversions.add_argument("--prefix", default=None)
 
     
 
@@ -97,19 +101,20 @@ def main():
     )
 
     elif args.command == "download":
-        manager.download_object_from_s3(args.bucket_name,args.key , args.local_file_path)
+        manager.download_object_from_s3(args.bucket_name,args.key, args.local_file_path)
 
     elif args.command == "deleteobject":
-        manager.delete_object(args.bucket_name)
+        manager.delete_object(args.bucket_name,  args.key)
+
 
     elif args.command == "deletebucket":
         manager.empty_and_delete_bucket(args.bucket_name)
 
     elif args.command == "list":
-        manager.list_objects(args.bucket_name)
+        manager.list_objects(args.bucket_name,prefix=args.prefix)
 
     elif args.command == "listversions":
-        manager.list_object_versions(args.bucket_name)
+        manager.list_object_versions(args.bucket_name, prefix=args.prefix)
 
 
 if __name__ == "__main__":
