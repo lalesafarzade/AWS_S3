@@ -1,90 +1,116 @@
-import boto3
-import json
-import subprocess
-from botocore.exceptions import ClientError
-from typing import Any, Dict
-from IPython.display import HTML
-import uuid
+import argparse
+from main import S3Manager 
 
 
-class S3Manager:
-    def __init__(self, region="us-east-1"):
-        self.region = region
 
-        self.s3 = boto3.client(
-            "s3",
-            region_name=region
-        )
+def main():
+    parser = argparse.ArgumentParser(description="S3 CLI Tool")
 
-    # 1. Create bucket
-    def create_bucket(self, bucket_name):
-        try:
-            if self.region == "us-east-1":
-                self.s3.create_bucket(Bucket=bucket_name)
-            else:
-                self.s3.create_bucket(
-                    Bucket=bucket_name,
-                    CreateBucketConfiguration={
-                        "LocationConstraint": self.region
-                    }
-                )
-            print(f"Bucket created: {bucket_name}")
+    subparsers = parser.add_subparsers(dest="command")
 
-        except ClientError as e:
-            print("Error creating bucket:", e)
+    # CREATE
+    create = subparsers.add_parser("create")
+    create.add_argument("bucket_name")
 
-    # 2. Get bucket policy (dictionary)
-    def get_bucket_policy(self, bucket_name):
-        try:
-            response = self.s3.get_bucket_policy(Bucket=bucket_name)
-            policy_dict = json.loads(response["Policy"])
-            return policy_dict
+    #Upload
+    upload = subparsers.add_parser("upload")
+    upload.add_argument("bucket_name")
+    upload.add_argument("file_path")
+    upload.add_argument("key")
 
-        except ClientError as e:
-            print("No policy or error:", e)
-            return None
+    #put bucket configuration
+    putconfiguration = subparsers.add_parser("putconfiguration")
+    putconfiguration.add_argument("bucket_name")
 
-    # 3. Get bucket configuration (dictionary)
-    def get_bucket_config(self, bucket_name):
-        try:
-            response = self.s3.get_bucket_location(Bucket=bucket_name)
-            return response  # already a dict
+    #get bucket configuration
+    getconfiguration = subparsers.add_parser("getconfiguration")
+    getconfiguration.add_argument("bucket_name")
 
-        except ClientError as e:
-            print("Error getting config:", e)
-            return None
+    # put bucket policy
+    putpolicy = subparsers.add_parser("putpolicy")
+    putpolicy.add_argument("bucket_name")
 
-    # 4. Upload image
-    def upload_image(self, bucket_name, file_path, key=None):
-        try:
-            if key is None:
-                key = file_path.split("/")[-1]
+    # get bucket policy
+    getpolicy = subparsers.add_parser("getpolicy")
+    getpolicy.add_argument("bucket_name")
 
-            self.s3.upload_file(file_path, bucket_name, key)
-            print(f"Uploaded {file_path} to {bucket_name}/{key}")
+    # Download file from S3 bucket 
+    download = subparsers.add_parser("download")
+    download.add_argument("bucket_name")
+    download.add_argument("key")
+    download.add_argument("local_file_path")
 
-        except ClientError as e:
-            print("Upload failed:", e)
+    # set versioning
+    versioning = subparsers.add_parser("versioning")
+    versioning.add_argument("bucket_name")
+    versioning.add_argument("enable")
+
+    
+
+    # delete object
+    deleteobject = subparsers.add_parser("deleteobject")
+    deleteobject.add_argument("bucket_name")
+
+    # empty_and_delete_bucket
+    deletebucket = subparsers.add_parser("deletebucket")
+    deletebucket.add_argument("bucket_name")
+
+    # LIST
+    list_cmd = subparsers.add_parser("list")
+    list_cmd.add_argument("bucket_name")
+
+    # listversions
+    listversions = subparsers.add_parser("listversions")
+    listversions.add_argument("bucket_name")
+
+    
+
+
+
+    args = parser.parse_args()
+
+    manager = S3Manager()
+
+    if args.command == "create":
+        manager.create_bucket(args.bucket_name)
+
+    elif args.command == "upload":
+        manager.upload(args.bucket_name,args.file_path, args.key)
+
+    elif args.command == "putconfiguration":
+        manager.put_bucket_config(args.bucket_name)
+
+    elif args.command == "getconfiguration":
+        manager.get_bucket_config(args.bucket_name)    
+    
+    elif args.command == "putpolicy":
+        manager.put_bucket_policy(args.bucket_name)
+
+    elif args.command == "getpolicy":
+        manager.get_bucket_policy(args.bucket_name)
+
+    elif args.command == "versioning":
+        enable = args.enable.lower() == "true"
+        manager.set_versioning(
+            args.bucket_name,
+            enable=enable
+    )
+
+    elif args.command == "download":
+        manager.download_object_from_s3(args.bucket_name,args.key , args.local_file_path)
+
+    elif args.command == "deleteobject":
+        manager.delete_object(args.bucket_name)
+
+    elif args.command == "deletebucket":
+        manager.empty_and_delete_bucket(args.bucket_name)
+
+    elif args.command == "list":
+        manager.list_objects(args.bucket_name)
+
+    elif args.command == "listversions":
+        manager.list_object_versions(args.bucket_name)
 
 
 if __name__ == "__main__":
-    ACCESS_KEY = "YOUR_ACCESS_KEY"
-    SECRET_KEY = "YOUR_SECRET_KEY"
-
-    bucket_name = "my-unique-bucket-123456"
-
-    s3_manager = S3Manager(ACCESS_KEY, SECRET_KEY)
-
-    # Create bucket
-    s3_manager.create_bucket(bucket_name)
-
-    # Upload image
-    s3_manager.upload_image(bucket_name, "image.jpg")
-
-    # Get policy
-    policy = s3_manager.get_bucket_policy(bucket_name)
-    print("Policy:", policy)
-
-    # Get config
-    config = s3_manager.get_bucket_config(bucket_name)
-    print("Config:", config)
+    main()
