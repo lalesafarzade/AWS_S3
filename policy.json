@@ -5,7 +5,7 @@
             "Effect": "Allow",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": f"arn:aws:s3:::my-bucket-5bac7a15/images/*"
+            "Resource": "arn:aws:s3:::lalas3demo/*"
         }
     ]
 }
